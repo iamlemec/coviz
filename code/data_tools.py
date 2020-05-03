@@ -104,6 +104,7 @@ cnt_cols = [
 
 nyc_pop = pd.Series({
     'state_fips': '36',
+    'state_code': 'NY',
     'county_name': 'New York City',
     'pop': 8398748
 }, name='NYC').to_frame().T
@@ -111,17 +112,19 @@ nyc_pop = pd.Series({
 def load_county():
     df_pop_county = pd.read_csv(
         f'{datadir}/pop/county-populations.csv',
-        usecols=['state_fips', 'county_fips', 'county_name', 'pop18'],
+        usecols=['state_fips', 'county_fips', 'county_name', 'state_code', 'pop18'],
         dtype={'state_fips': 'str', 'county_fips': 'str', 'pop18': 'Int64'}
     )
     df_pop_county = df_pop_county.set_index('county_fips').rename(columns={'pop18': 'pop'})
     df_pop_county = pd.concat([df_pop_county, nyc_pop])
 
     df_cnt = pd.read_csv(f'{datadir}/nyt/us-counties.csv', usecols=cnt_cols, dtype=cnt_dtypes, parse_dates=['date'])
-    df_cnt.loc[df_cnt['county']=='New York City', 'fips'] = 'NYC'
-    df_cnt = df_cnt.join(df_pop_county[['county_name', 'pop']], on='fips')
+    df_cnt = df_cnt.rename(columns={'fips': 'county_fips'})
+    df_cnt.loc[df_cnt['county']=='New York City', 'county_fips'] = 'NYC'
+    df_cnt = df_cnt.join(df_pop_county[['state_code', 'pop']], on='county_fips')
     df_cnt = df_cnt.rename(columns={'cases': 'cases_cum', 'deaths': 'deaths_cum'})
-    df_cnt = df_cnt.dropna(subset=['fips', 'date']).set_index(['fips', 'date'])
+    df_cnt['full_name'] = df_cnt['county'] + ', ' + df_cnt['state_code']
+    df_cnt = df_cnt.dropna(subset=['full_name', 'date']).set_index(['full_name', 'date'])
     df_cnt = df_cnt.fillna(0)
     df_cnt[['cases_pc', 'deaths_pc']] = df_cnt[['cases_cum', 'deaths_cum']].apply(lambda s: s/df_cnt['pop'])
     return df_cnt

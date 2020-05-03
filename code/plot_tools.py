@@ -7,6 +7,11 @@ mpl.style.use('clean.mplstyle')
 
 eps = 1e-8
 
+def log1(x):
+    y = np.log(x)
+    y[np.isinf(y)] = np.nan
+    return y
+
 def get_start(ser, start):
     pos = ser > start
     if pos.any():
@@ -26,10 +31,11 @@ def get_aligned(sel, start):
     pos = pd.concat({c: s.reset_index(drop=True) for c, s in net.items() if s is not None}, axis=1)
     return pos
 
-def gen_ticks(ymin, ymax, per):
-    if ymin <= 0:
-        yield 0
-        ymin = 1/per
+def gen_ticks_log(ymin, ymax, per):
+    pmin = 0.1/per
+    if ymin <= pmin:
+        yield pmin
+        ymin = pmin
 
     ppow = np.floor(np.log10(ymin))
     pnum = ymin/np.power(10.0, ppow)
@@ -54,6 +60,33 @@ def gen_ticks(ymin, ymax, per):
 
     yield yval
 
+def gen_ticks_lin(ymin0, ymax0, per):
+    ymin = per*ymin0
+    ymax = per*ymax0
+
+    if ymax <= 10:
+        step = 1
+    elif ymax <= 20:
+        step = 2
+    elif ymax <= 50:
+        step = 5
+    elif ymax <= 100:
+        step = 10
+    elif ymax <= 200:
+        step = 20
+    elif ymax <= 500:
+        step = 50
+    elif ymax <= 1000:
+        step = 100
+    else:
+        step = 200
+
+    yval = 0
+    while yval < ymax:
+        yield yval/per
+        yval += step
+    yield yval/per
+
 class FixedLogScale(mpl.scale.ScaleBase):
     name = 'fixed_log'
 
@@ -62,7 +95,7 @@ class FixedLogScale(mpl.scale.ScaleBase):
         self.per = per
 
     def get_transform(self):
-        return mpl.scale.FuncTransform(np.log, np.exp)
+        return mpl.scale.FuncTransform(log1, np.exp)
 
     def set_default_locators_and_formatters(self, axis):
         class InverseFormatter(mpl.ticker.Formatter):
@@ -79,7 +112,7 @@ class FixedLogScale(mpl.scale.ScaleBase):
                     return '%.1f' % d
 
         ymin, ymax = axis.get_view_interval()
-        ticks = list(gen_ticks(ymin, ymax, self.per))
+        ticks = list(gen_ticks_log(ymin, ymax, self.per))
         loc = mpl.ticker.FixedLocator(ticks)
 
         axis.set_major_locator(loc)
@@ -88,11 +121,55 @@ class FixedLogScale(mpl.scale.ScaleBase):
 
 mpl.scale.register_scale(FixedLogScale)
 
-def plot_progress(codes, names=None, data=None, figsize=(8, 5), xylabel=(6, -4), per=1e6):
+class FixedLinScale(mpl.scale.ScaleBase):
+    name = 'fixed_lin'
+
+    def __init__(self, axis, per=1e6):
+        super().__init__(axis)
+        self.per = per
+
+    def get_transform(self):
+        return mpl.scale.IdentityTransform()
+
+    def set_default_locators_and_formatters(self, axis):
+        class InverseFormatter(mpl.ticker.Formatter):
+            def __init__(self, per):
+                self.per = per
+
+            def __call__(self, x, pos=None):
+                d = self.per*x
+                if d == 0:
+                    return '0'
+                elif d >= 1:
+                    return '%d' % int(d+eps)
+                else:
+                    return '%.1f' % d
+
+        ymin, ymax = axis.get_view_interval()
+        ticks = list(gen_ticks_lin(ymin, ymax, self.per))
+        loc = mpl.ticker.FixedLocator(ticks)
+
+        axis.set_major_locator(loc)
+        axis.set_major_formatter(InverseFormatter(self.per))
+        axis.set_minor_locator(mpl.ticker.NullLocator())
+
+mpl.scale.register_scale(FixedLinScale)
+
+def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(6, -4), per=1e6, log=True, cum=True):
     # get correct labels
+    if codes is None:
+        codes = list(data)
     if names is None:
         names = {c: c for c in codes}
     data = data[codes].rename(columns=names)
+
+    # look at differences?
+    if not cum:
+        data = data.diff(axis=0)
+
+    # kill off zeros in log mode
+    if log:
+        data[data<=0] = np.nan
 
     # get last valid point
     dlast, vlast = zip(*[next(data[c].dropna().iloc[[-1]].iteritems()) for c in data])
@@ -112,11 +189,18 @@ def plot_progress(codes, names=None, data=None, figsize=(8, 5), xylabel=(6, -4),
     vmax = data.max().max()
     dmin = data.index[0]
     dmax = data.index[-1]
-    ax.set_ylim(0.7*vmin, 2.3*vmax)
-    ax.set_xlim(dmin-2, dmax+5)
+
+    # 125 log axes
+    if log:
+        ax.set_yscale('fixed_log', per=per)
+        ax.set_ylim(0.7*vmin, 2.3*vmax)
+        ax.set_xlim(0, dmax+5)
+    else:
+        ax.set_yscale('fixed_lin', per=per)
+        ax.set_ylim(0, 1.1*vmax)
+        ax.set_xlim(0, dmax+5)
 
     # set up axes
-    ax.set_yscale('fixed_log', per=per)
     ax.grid(axis='y', linewidth=1, alpha=0.3)
     ax.legend([])
 
