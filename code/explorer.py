@@ -75,22 +75,19 @@ sel_state = data_state.loc[:, idx[:, state]].dropna()
 sel_county = data_county.loc[:, idx[:, county]].dropna()
 sel = pd.concat([sel_country, sel_state, sel_county], axis=1)
 
-# smoothing
-sel = sel.rolling(smooth, min_periods=1).mean()
-
 # cases
 st.subheader('Cases (per million people)')
-fig_c, ax_c = pt.plot_progress(data=sel['cases_pc'], log=log, cum=cum)
+fig_c, ax_c = pt.plot_progress(data=sel['cases_pc'], log=log, cum=cum, smooth=smooth)
 ax_c.set_xlabel('Days since 1 case per million people')
 ax_c.set_ylabel('Cases per million people')
-st.pyplot(fig_c, clear=True)
+st.pyplot(fig_c, clear=True, bbox_inches='tight')
 
 # deaths
 st.subheader('Deaths (per million people)')
-fig_d, ax_d = pt.plot_progress(data=sel['deaths_pc'], log=log, cum=cum)
+fig_d, ax_d = pt.plot_progress(data=sel['deaths_pc'], log=log, cum=cum, smooth=smooth)
 ax_d.set_xlabel('Days since 1 case per million people')
 ax_d.set_ylabel('Deaths per million people')
-st.pyplot(fig_d, clear=True)
+st.pyplot(fig_d, clear=True, bbox_inches='tight')
 
 ##
 ## county fips

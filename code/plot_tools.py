@@ -111,7 +111,12 @@ class FixedLogScale(mpl.scale.ScaleBase):
                 else:
                     return '%.1f' % d
 
+        pmin = 0.1/self.per
         ymin, ymax = axis.get_view_interval()
+        if ymin < pmin:
+            ymin = pmin
+            axis.axes.set_ylim(bottom=ymin)
+
         ticks = list(gen_ticks_log(ymin, ymax, self.per))
         loc = mpl.ticker.FixedLocator(ticks)
 
@@ -155,13 +160,17 @@ class FixedLinScale(mpl.scale.ScaleBase):
 
 mpl.scale.register_scale(FixedLinScale)
 
-def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(6, -4), per=1e6, log=True, cum=True):
+def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(6, -4), per=1e6, log=True, cum=True, smooth=None):
     # get correct labels
     if codes is None:
         codes = list(data)
     if names is None:
         names = {c: c for c in codes}
     data = data[codes].rename(columns=names)
+
+    # smooth log cumulative data
+    if smooth is not None:
+        data = data.rolling(smooth, min_periods=1).mean()
 
     # look at differences?
     if not cum:
