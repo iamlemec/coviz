@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import matplotlib as mpl
+import seaborn as sns
+from cycler import cycler
 
 import data_tools as dt
 import plot_tools as pt
@@ -9,6 +12,15 @@ idx = pd.IndexSlice
 
 start = 1e-6
 scale = 1e6
+
+##
+## configure
+##
+
+# pal = sns.color_palette('husl', 6)
+# pal = sns.color_palette('husl')
+pal = ["#1E88E5", "#ff0d57", "#13B755", "#7C52FF", "#FFC000", "#00AEEF"]
+mpl.rcParams['axes.prop_cycle'] = cycler(color=pal)
 
 ##
 ## tools

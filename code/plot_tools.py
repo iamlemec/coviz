@@ -160,7 +160,7 @@ class FixedLinScale(mpl.scale.ScaleBase):
 
 mpl.scale.register_scale(FixedLinScale)
 
-def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(6, -4), per=1e6, log=True, cum=True, smooth=None):
+def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(10, -10), per=1e6, log=True, cum=True, smooth=None):
     # get correct labels
     if codes is None:
         codes = list(data)
@@ -170,7 +170,7 @@ def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(6,
 
     # smooth log cumulative data
     if smooth is not None:
-        data = data.rolling(smooth, min_periods=1).mean()
+        data = data.rolling(smooth).mean()
 
     # look at differences?
     if not cum:
@@ -185,11 +185,11 @@ def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(6,
 
     # plot core data
     fig, ax = plt.subplots(figsize=figsize)
-    data.plot(linewidth=2, ax=ax)
+    data.plot(linewidth=1.5, ax=ax)
 
     # annotate endpoints
     colors = [l.get_color() for l in ax.get_lines()]
-    ax.scatter(dlast, vlast, c=colors, zorder=10)
+    ax.scatter(dlast, vlast, c=colors, s=20, zorder=10)
     for n, c, d, v in zip(names.values(), colors, dlast, vlast):
         ax.annotate(n, (d, v), xytext=xylabel, color=c, fontsize=12, textcoords='offset pixels')
 
