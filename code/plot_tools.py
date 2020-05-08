@@ -19,17 +19,15 @@ def get_start(ser, start):
     else:
         return None
 
-def get_shifted(ser, start):
-    date = get_start(ser, start)
-    if date is not None:
-        return ser[date:]
-    else:
-        return None
+def get_shifted(pan, dst):
+    return pd.concat({c: pan[c].loc[s:, :].reset_index(drop=True) for c, s in dst.items() if s is not None}, axis=1)
 
-def get_aligned(sel, start):
-    net = {c: get_shifted(sel[c], start) for c in sel}
-    pos = pd.concat({c: s.reset_index(drop=True) for c, s in net.items() if s is not None}, axis=1)
-    return pos
+def get_aligned(panel, cutoff, cutvar):
+    start = {c: get_start(panel[cutvar, c], cutoff) for c in panel[cutvar]}
+    panel = panel.swaplevel(axis=1).sort_index(axis=1)
+    shift = get_shifted(panel, start)
+    shift = shift.swaplevel(axis=1).sort_index(axis=1)
+    return shift
 
 def gen_ticks_log(ymin, ymax, per):
     pmin = 0.1/per
@@ -130,7 +128,9 @@ class FixedLinScale(mpl.scale.ScaleBase):
     name = 'fixed_lin'
 
     def __init__(self, axis, per=1e6):
-        super().__init__(axis)
+        super().__init__(axis)    # if smooth is not None:
+    #     data = data.rolling(smooth).mean()
+
         self.per = per
 
     def get_transform(self):

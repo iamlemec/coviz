@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib as mpl
-import seaborn as sns
 from cycler import cycler
 
 import data_tools as dt
@@ -17,8 +16,6 @@ scale = 1e6
 ## configure
 ##
 
-# pal = sns.color_palette('husl', 6)
-# pal = sns.color_palette('husl')
 pal = ["#1E88E5", "#ff0d57", "#13B755", "#7C52FF", "#FFC000", "#00AEEF"]
 mpl.rcParams['axes.prop_cycle'] = cycler(color=pal)
 
@@ -38,25 +35,20 @@ def log10(x):
 @st.cache()
 def load_country():
     country = dt.load_country().unstack(level='country_code')[['cases_pc', 'deaths_pc']]
-    align = pt.get_aligned(country, start)
+    align = pt.get_aligned(country, start, 'cases_pc')
     return align
 
 @st.cache()
 def load_state():
     state = dt.load_state().unstack(level='abbrev')[['cases_pc', 'deaths_pc']]
-    align = pt.get_aligned(state, start)
+    align = pt.get_aligned(state, start, 'cases_pc')
     return align
 
 @st.cache()
 def load_county():
     county = dt.load_county().unstack(level='full_name')[['cases_pc', 'deaths_pc']]
-    align = pt.get_aligned(county, start)
+    align = pt.get_aligned(county, start, 'cases_pc')
     return align
-
-@st.cache()
-def load_fips():
-    fips = pd.read_csv('../data/pop/county-populations.csv', dtype={'county_fips': 'str'})
-    return fips
 
 ##
 ## display
@@ -65,7 +57,6 @@ def load_fips():
 data_country = load_country()
 data_state = load_state()
 data_county = load_county()
-# data_fips = load_fips()
 
 # options
 list_country = data_country.columns.levels[1].tolist()
@@ -79,12 +70,12 @@ county = st.sidebar.multiselect('County', list_county, default=['Allegheny, PA',
 st.sidebar.title('Options')
 log = st.sidebar.checkbox('Log Scale', False)
 cum = st.sidebar.checkbox('Cumulative', False)
-smooth = st.sidebar.number_input('Smoothing', min_value=1, value=3)
+smooth = st.sidebar.number_input('Smoothing', min_value=1, value=7)
 
 # aggregate selections
-sel_country = data_country.loc[:, idx[:, country]].dropna()
-sel_state = data_state.loc[:, idx[:, state]].dropna()
-sel_county = data_county.loc[:, idx[:, county]].dropna()
+sel_country = data_country.loc[:, idx[:, country]].dropna(how='all')
+sel_state = data_state.loc[:, idx[:, state]].dropna(how='all')
+sel_county = data_county.loc[:, idx[:, county]].dropna(how='all')
 sel = pd.concat([sel_country, sel_state, sel_county], axis=1)
 
 # cases
@@ -100,10 +91,3 @@ fig_d, ax_d = pt.plot_progress(data=sel['deaths_pc'], log=log, cum=cum, smooth=s
 ax_d.set_xlabel('Days since 1 case per million people')
 ax_d.set_ylabel('Deaths per million people')
 st.pyplot(fig_d, clear=True, bbox_inches='tight')
-
-##
-## county fips
-##
-
-# st.title('County Statistics')
-# st.table(data_fips)
