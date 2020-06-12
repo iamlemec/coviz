@@ -34,21 +34,15 @@ def log10(x):
 
 @st.cache()
 def load_country():
-    country = dt.load_country().unstack(level='country_code')[['cases_pc', 'deaths_pc']]
-    align = pt.get_aligned(country, start, 'cases_pc')
-    return align
+    return dt.load_country().unstack(level='country_code')[['cases_pc', 'deaths_pc']]
 
 @st.cache()
 def load_state():
-    state = dt.load_state().unstack(level='abbrev')[['cases_pc', 'deaths_pc']]
-    align = pt.get_aligned(state, start, 'cases_pc')
-    return align
+    return dt.load_state().unstack(level='abbrev')[['cases_pc', 'deaths_pc']]
 
 @st.cache()
 def load_county():
-    county = dt.load_county().unstack(level='full_name')[['cases_pc', 'deaths_pc']]
-    align = pt.get_aligned(county, start, 'cases_pc')
-    return align
+    return dt.load_county().unstack(level='full_name')[['cases_pc', 'deaths_pc']]
 
 ##
 ## display

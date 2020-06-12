@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from datetime import timedelta
 
 mpl.style.use('clean.mplstyle')
 
@@ -203,11 +204,10 @@ def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(10
     if log:
         ax.set_yscale('fixed_log', per=per)
         ax.set_ylim(0.7*vmin, 2.3*vmax)
-        ax.set_xlim(0, dmax+5)
     else:
         ax.set_yscale('fixed_lin', per=per)
         ax.set_ylim(0, 1.1*vmax)
-        ax.set_xlim(0, dmax+5)
+    ax.set_xlim('2020-03-01', dmax+timedelta(days=5))
 
     # set up axes
     ax.grid(axis='y', linewidth=1, alpha=0.3)
