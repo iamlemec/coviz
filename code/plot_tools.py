@@ -161,12 +161,16 @@ class FixedLinScale(mpl.scale.ScaleBase):
 
 mpl.scale.register_scale(FixedLinScale)
 
-def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(10, -10), per=1e6, log=True, cum=True, smooth=None):
+def plot_progress(data, names=None, figsize=(8, 5), xylabel=(5, -4), per=1e6, log=False, cum=False, smooth=7, start='2020-02-15'):
     # get correct labels
-    if codes is None:
-        codes = list(data)
     if names is None:
+        codes = list(data)
         names = {c: c for c in codes}
+    elif type(names) is list:
+        codes = names
+        names = {c: c for c in codes}
+    else:
+        codes = list(names)
     data = data[codes].rename(columns=names)
 
     # smooth log cumulative data
@@ -174,8 +178,8 @@ def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(10
         data = data.rolling(smooth).mean()
 
     # look at differences?
-    if not cum:
-        data = data.diff(axis=0)
+    if cum:
+        data = data.cumsum(axis=0)
 
     # kill off zeros in log mode
     if log:
@@ -186,13 +190,14 @@ def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(10
 
     # plot core data
     fig, ax = plt.subplots(figsize=figsize)
-    data.plot(linewidth=1.5, ax=ax)
+    data.plot(linewidth=2, ax=ax)
 
     # annotate endpoints
     colors = [l.get_color() for l in ax.get_lines()]
     ax.scatter(dlast, vlast, c=colors, s=20, zorder=10)
-    for n, c, d, v in zip(names.values(), colors, dlast, vlast):
-        ax.annotate(n, (d, v), xytext=xylabel, color=c, fontsize=12, textcoords='offset pixels')
+    for s, c, d, v in zip(codes, colors, dlast, vlast):
+        n = names[s]
+        ax.annotate(n, (d, v), xytext=xylabel, color=c, fontsize=14, textcoords='offset pixels')
 
     # set reasonable bounds
     vmin = data.min().min()
@@ -207,7 +212,7 @@ def plot_progress(codes=None, names=None, data=None, figsize=(8, 5), xylabel=(10
     else:
         ax.set_yscale('fixed_lin', per=per)
         ax.set_ylim(0, 1.1*vmax)
-    ax.set_xlim('2020-03-01', dmax+timedelta(days=5))
+    ax.set_xlim(start, dmax+timedelta(days=5))
 
     # set up axes
     ax.grid(axis='y', linewidth=1, alpha=0.3)

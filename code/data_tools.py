@@ -34,10 +34,12 @@ def load_country():
     df_int = pd.read_csv(f'{datadir}/eu/covid_country_data.csv', usecols=int_cols, dtype=int_dtypes, parse_dates=['dateRep'], dayfirst=True)
     df_int = df_int.rename(columns=int_names)
     df_int = df_int[['date', 'country_code', 'deaths', 'cases', 'pop']]
-    df_int = df_int.dropna(subset=['date', 'country_code', 'pop']).fillna(0)
-    df_int = df_int.set_index(['country_code', 'date']).sort_index()
+    df_int = df_int.dropna(subset=['date', 'country_code', 'pop'])
+    df_int = df_int.set_index(['country_code', 'date']).sort_index().astype(np.float)
     df_int[['cases_cum', 'deaths_cum']] = df_int.groupby('country_code')[['cases', 'deaths']].cumsum()
-    df_int[['cases_pc', 'deaths_pc']] = df_int[['cases_cum', 'deaths_cum']].apply(lambda s: s/df_int['pop'])
+    df_int[['cases_cum_pc', 'deaths_cum_pc']] = df_int[['cases_cum', 'deaths_cum']].div(df_int['pop'], axis=0)
+    df_int[['cases_pc', 'deaths_pc']] = df_int[['cases', 'deaths']].div(df_int['pop'], axis=0)
+    df_int = df_int.unstack(level='country_code').fillna(0)
     return df_int
 
 ##
@@ -47,19 +49,19 @@ def load_country():
 # source:
 # https://github.com/nytimes/covid-19-data
 
-usa_cols = [
+state_cols = [
     'fips',
     'date',
     'cases',
     'deaths'
 ]
 
-usa_names = {
+state_names = {
     'cases': 'cases_cum',
     'deaths': 'deaths_cum'
 }
 
-usa_dtypes = {
+state_dtypes = {
     'cases': 'Int64',
     'deaths': 'Int64',
     'fips': 'str'
@@ -73,13 +75,16 @@ def load_state():
     )
     df_pop_state = df_pop_state.set_index('fips').rename(columns={'2018': 'pop'})
 
-    df_usa = pd.read_csv(f'{datadir}/nyt/us-states.csv', usecols=usa_cols, dtype=usa_dtypes, parse_dates=['date'])
-    df_usa = df_usa.join(df_pop_state[['abbrev', 'pop']], on='fips').drop(columns='fips')
-    df_usa = df_usa.rename(columns=usa_names)
-    df_usa = df_usa.dropna(subset=['abbrev', 'date']).set_index(['abbrev', 'date'])
-    df_usa = df_usa.fillna(0)
-    df_usa[['cases_pc', 'deaths_pc']] = df_usa[['cases_cum', 'deaths_cum']].apply(lambda s: s/df_usa['pop'])
-    return df_usa
+    df_state = pd.read_csv(f'{datadir}/nyt/us-states.csv', usecols=state_cols, dtype=state_dtypes, parse_dates=['date'])
+    df_state = df_state.join(df_pop_state[['abbrev', 'pop']], on='fips').drop(columns='fips')
+    df_state = df_state.rename(columns=state_names)
+    df_state = df_state.dropna(subset=['abbrev', 'date'])
+    df_state = df_state.set_index(['abbrev', 'date']).sort_index().astype(np.float)
+    df_state[['cases', 'deaths']] = df_state.groupby(level='abbrev')[['cases_cum', 'deaths_cum']].diff()
+    df_state[['cases_pc', 'deaths_pc']] = df_state[['cases', 'deaths']].div(df_state['pop'], axis=0)
+    df_state[['cases_cum_pc', 'deaths_cum_pc']] = df_state[['cases_cum', 'deaths_cum']].div(df_state['pop'], axis=0)
+    df_state = df_state.unstack(level='abbrev').fillna(0)
+    return df_state
 
 ##
 ## counties
@@ -88,13 +93,13 @@ def load_state():
 # source:
 # https://github.com/nytimes/covid-19-data
 
-cnt_dtypes = {
+county_dtypes = {
     'cases': 'Int64',
     'deaths': 'Int64',
     'fips': 'str'
 }
 
-cnt_cols = [
+county_cols = [
     'fips',
     'date',
     'county',
@@ -118,13 +123,17 @@ def load_county():
     df_pop_county = df_pop_county.set_index('county_fips').rename(columns={'pop18': 'pop'})
     df_pop_county = pd.concat([df_pop_county, nyc_pop])
 
-    df_cnt = pd.read_csv(f'{datadir}/nyt/us-counties.csv', usecols=cnt_cols, dtype=cnt_dtypes, parse_dates=['date'])
-    df_cnt = df_cnt.rename(columns={'fips': 'county_fips'})
-    df_cnt.loc[df_cnt['county']=='New York City', 'county_fips'] = 'NYC'
-    df_cnt = df_cnt.join(df_pop_county[['state_code', 'pop']], on='county_fips')
-    df_cnt = df_cnt.rename(columns={'cases': 'cases_cum', 'deaths': 'deaths_cum'})
-    df_cnt['full_name'] = df_cnt['county'] + ', ' + df_cnt['state_code']
-    df_cnt = df_cnt.dropna(subset=['full_name', 'date']).set_index(['full_name', 'date'])
-    df_cnt = df_cnt.fillna(0)
-    df_cnt[['cases_pc', 'deaths_pc']] = df_cnt[['cases_cum', 'deaths_cum']].apply(lambda s: s/df_cnt['pop'])
-    return df_cnt
+    df_county = pd.read_csv(f'{datadir}/nyt/us-counties.csv', usecols=county_cols, dtype=county_dtypes, parse_dates=['date'])
+    df_county = df_county.rename(columns={'fips': 'county_fips'})
+    df_county.loc[df_county['county']=='New York City', 'county_fips'] = 'NYC'
+    df_county = df_county.join(df_pop_county[['state_code', 'pop']], on='county_fips')
+    df_county = df_county.rename(columns={'cases': 'cases_cum', 'deaths': 'deaths_cum'})
+    df_county['full_name'] = df_county['county'] + ', ' + df_county['state_code']
+    df_county = df_county.drop(['county', 'state_code', 'county_fips'], axis=1)
+    df_county = df_county.dropna(subset=['full_name', 'date'])
+    df_county = df_county.set_index(['full_name', 'date']).sort_index().astype(np.float)
+    df_county[['cases', 'deaths']] = df_county.groupby(level='full_name')[['cases_cum', 'deaths_cum']].diff()
+    df_county[['cases_pc', 'deaths_pc']] = df_county[['cases', 'deaths']].div(df_county['pop'], axis=0)
+    df_county[['cases_cum_pc', 'deaths_cum_pc']] = df_county[['cases_cum', 'deaths_cum']].div(df_county['pop'], axis=0)
+    df_county = df_county.unstack(level='full_name').fillna(0)
+    return df_county

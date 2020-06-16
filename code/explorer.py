@@ -34,15 +34,15 @@ def log10(x):
 
 @st.cache()
 def load_country():
-    return dt.load_country().unstack(level='country_code')[['cases_pc', 'deaths_pc']]
+    return dt.load_country()[['cases_pc', 'deaths_pc']]
 
 @st.cache()
 def load_state():
-    return dt.load_state().unstack(level='abbrev')[['cases_pc', 'deaths_pc']]
+    return dt.load_state()[['cases_pc', 'deaths_pc']]
 
 @st.cache()
 def load_county():
-    return dt.load_county().unstack(level='full_name')[['cases_pc', 'deaths_pc']]
+    return dt.load_county()[['cases_pc', 'deaths_pc']]
 
 ##
 ## display
@@ -75,13 +75,13 @@ sel = pd.concat([sel_country, sel_state, sel_county], axis=1)
 # cases
 st.subheader('Cases (per million people)')
 fig_c, ax_c = pt.plot_progress(data=sel['cases_pc'], log=log, cum=cum, smooth=smooth)
-ax_c.set_xlabel('Days since 1 case per million people')
-ax_c.set_ylabel('Cases per million people')
+ax_c.set_xlabel('')
+ax_c.set_ylabel('')
 st.pyplot(fig_c, clear=True, bbox_inches='tight')
 
 # deaths
 st.subheader('Deaths (per million people)')
 fig_d, ax_d = pt.plot_progress(data=sel['deaths_pc'], log=log, cum=cum, smooth=smooth)
-ax_d.set_xlabel('Days since 1 case per million people')
-ax_d.set_ylabel('Deaths per million people')
+ax_d.set_xlabel('')
+ax_d.set_ylabel('')
 st.pyplot(fig_d, clear=True, bbox_inches='tight')
