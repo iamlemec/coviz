@@ -74,14 +74,14 @@ sel = pd.concat([sel_country, sel_state, sel_county], axis=1)
 
 # cases
 st.subheader('Cases (per million people)')
-fig_c, ax_c = pt.plot_progress(data=sel['cases_pc'], log=log, cum=cum, smooth=smooth)
+fig_c, ax_c = pt.plot_progress(data=sel['cases_pc'], log=log, cum=cum, smooth=smooth, per=1e6)
 ax_c.set_xlabel('')
 ax_c.set_ylabel('')
 st.pyplot(fig_c, clear=True, bbox_inches='tight')
 
 # deaths
-st.subheader('Deaths (per million people)')
-fig_d, ax_d = pt.plot_progress(data=sel['deaths_pc'], log=log, cum=cum, smooth=smooth)
+st.subheader('Deaths (per 10 million people)')
+fig_d, ax_d = pt.plot_progress(data=sel['deaths_pc'], log=log, cum=cum, smooth=smooth, per=1e7)
 ax_d.set_xlabel('')
 ax_d.set_ylabel('')
 st.pyplot(fig_d, clear=True, bbox_inches='tight')

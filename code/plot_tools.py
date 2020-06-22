@@ -31,11 +31,6 @@ def get_aligned(panel, cutoff, cutvar):
     return shift
 
 def gen_ticks_log(ymin, ymax, per):
-    pmin = 0.1/per
-    if ymin <= pmin:
-        yield pmin
-        ymin = pmin
-
     ppow = np.floor(np.log10(ymin))
     pnum = ymin/np.power(10.0, ppow)
 
@@ -129,9 +124,7 @@ class FixedLinScale(mpl.scale.ScaleBase):
     name = 'fixed_lin'
 
     def __init__(self, axis, per=1e6):
-        super().__init__(axis)    # if smooth is not None:
-    #     data = data.rolling(smooth).mean()
-
+        super().__init__(axis)
         self.per = per
 
     def get_transform(self):
@@ -208,7 +201,7 @@ def plot_progress(data, names=None, figsize=(8, 5), xylabel=(5, -4), per=1e6, lo
     # 125 log axes
     if log:
         ax.set_yscale('fixed_log', per=per)
-        ax.set_ylim(0.7*vmin, 2.3*vmax)
+        # ax.set_ylim(0.7*vmin, 2.3*vmax)
     else:
         ax.set_yscale('fixed_lin', per=per)
         ax.set_ylim(0, 1.1*vmax)

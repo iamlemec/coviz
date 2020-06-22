@@ -16,18 +16,18 @@ int_cols = [
     'dateRep',
     'cases',
     'deaths',
-    'popData2018'
+    'popData2019'
 ]
 
 int_names = {
     'countryterritoryCode': 'country_code',
     'countriesAndTerritories': 'country_name',
     'dateRep': 'date',
-    'popData2018': 'pop'
+    'popData2019': 'pop'
 }
 
 int_dtypes = {
-    'popData2018': 'Int64'
+    'popData2019': 'Int64'
 }
 
 def load_country():
