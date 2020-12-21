@@ -8,39 +8,45 @@ datadir = '../data'
 ##
 
 # source:
-# https://www.ecdc.europa.eu/en/geographical-distribution-2019-ncov-cases
+# HDX: https://data.humdata.org/dataset/novel-coronavirus-2019-ncov-cases
 
-int_cols = [
-    'countryterritoryCode',
-    'countriesAndTerritories',
-    'dateRep',
-    'cases',
-    'deaths',
-    'popData2019'
-]
+def load_jhu(path, name):
+    iso_info = pd.read_csv(f'{datadir}/meta/country_info.csv', dtype={'population': 'Int64'})
+    iso_map = iso_info.set_index(['country', 'region'])['country_code']
 
-int_names = {
-    'countryterritoryCode': 'country_code',
-    'countriesAndTerritories': 'country_name',
-    'dateRep': 'date',
-    'popData2019': 'pop'
-}
+    iso_pop = iso_info.set_index('country_code')['population']
+    iso_pop = iso_pop.groupby('country_code').sum()
 
-int_dtypes = {
-    'popData2019': 'Int64'
-}
+    # merge iso and aggregate
+    df = pd.read_csv(path)
+    df = df.drop(['Lat', 'Long'], axis=1)
+    df = df.rename({'Country/Region': 'country', 'Province/State': 'region'}, axis=1)
+    df = df.join(iso_map, on=['country', 'region'])
+    df = df.drop(['country', 'region'], axis=1)
+    df = df.set_index('country_code')
+    df = df.groupby('country_code').sum()
 
+    # transpose and fix dates
+    df = df.T
+    df.index = pd.to_datetime(df.index)
+    
+    # find per capita rates
+    df_pc = df.div(iso_pop, axis=1)
+
+    # make full frame
+    return pd.concat({
+        f'{name}_cum': df,
+        f'{name}_cum_pc': df_pc,
+        f'{name}': df.diff(),
+        f'{name}_pc': df_pc.diff(),
+    }, axis=1)
+    
 def load_country():
-    df_int = pd.read_csv(f'{datadir}/eu/covid_country_data.csv', usecols=int_cols, dtype=int_dtypes, parse_dates=['dateRep'], dayfirst=True)
-    df_int = df_int.rename(columns=int_names)
-    df_int = df_int[['date', 'country_code', 'deaths', 'cases', 'pop']]
-    df_int = df_int.dropna(subset=['date', 'country_code', 'pop'])
-    df_int = df_int.set_index(['country_code', 'date']).sort_index().astype(np.float)
-    df_int[['cases_cum', 'deaths_cum']] = df_int.groupby('country_code')[['cases', 'deaths']].cumsum()
-    df_int[['cases_cum_pc', 'deaths_cum_pc']] = df_int[['cases_cum', 'deaths_cum']].div(df_int['pop'], axis=0)
-    df_int[['cases_pc', 'deaths_pc']] = df_int[['cases', 'deaths']].div(df_int['pop'], axis=0)
-    df_int = df_int.unstack(level='country_code').fillna(0)
-    return df_int
+    jhu_dir = f'{datadir}/jhu/csse_covid_19_data/csse_covid_19_time_series'
+    return pd.concat([
+        load_jhu(f'{jhu_dir}/time_series_covid19_confirmed_global.csv', 'cases'),
+        load_jhu(f'{jhu_dir}/time_series_covid19_deaths_global.csv', 'deaths'),
+    ], axis=1)
 
 ##
 ## states
@@ -114,7 +120,7 @@ nyc_pop = pd.Series({
     'pop': 8398748
 }, name='NYC').to_frame().T
 
-def load_county():
+def load_county_stats():
     df_pop_county = pd.read_csv(
         f'{datadir}/pop/county-populations.csv',
         usecols=['state_fips', 'county_fips', 'county_name', 'state_code', 'pop18'],
@@ -122,7 +128,10 @@ def load_county():
     )
     df_pop_county = df_pop_county.set_index('county_fips').rename(columns={'pop18': 'pop'})
     df_pop_county = pd.concat([df_pop_county, nyc_pop])
+    return df_pop_county
 
+def load_county():
+    df_pop_county = load_county_stats()
     df_county = pd.read_csv(f'{datadir}/nyt/us-counties.csv', usecols=county_cols, dtype=county_dtypes, parse_dates=['date'])
     df_county = df_county.rename(columns={'fips': 'county_fips'})
     df_county.loc[df_county['county']=='New York City', 'county_fips'] = 'NYC'

@@ -8,8 +8,8 @@ mpl.style.use('clean.mplstyle')
 
 eps = 1e-8
 
-def log1(x):
-    y = np.log(x)
+def log1(x, base=np.e):
+    y = np.log(x)/np.log(base)
     y[np.isinf(y)] = np.nan
     return y
 
@@ -72,8 +72,14 @@ def gen_ticks_lin(ymin0, ymax0, per):
         step = 50
     elif ymax <= 1000:
         step = 100
-    else:
+    elif ymax <= 2000:
         step = 200
+    elif ymax <= 5000:
+        step = 500
+    elif ymax <= 10000:
+        step = 1000
+    else:
+        step = 2000
 
     yval = 0
     while yval < ymax:
@@ -105,7 +111,7 @@ class FixedLogScale(mpl.scale.ScaleBase):
                 else:
                     return '%.1f' % d
 
-        pmin = 0.1/self.per
+        pmin = 1/self.per
         ymin, ymax = axis.get_view_interval()
         if ymin < pmin:
             ymin = pmin
@@ -154,7 +160,7 @@ class FixedLinScale(mpl.scale.ScaleBase):
 
 mpl.scale.register_scale(FixedLinScale)
 
-def plot_progress(data, names=None, figsize=(8, 5), xylabel=(5, -4), per=1e6, log=False, cum=False, smooth=7, start='2020-02-15'):
+def plot_progress(data, names=None, figsize=(8, 5), xylabel=(5, -4), per=1e6, log=False, cumul=False, smooth=7, start='2020-02-15'):
     # get correct labels
     if names is None:
         codes = list(data)
@@ -171,7 +177,7 @@ def plot_progress(data, names=None, figsize=(8, 5), xylabel=(5, -4), per=1e6, lo
         data = data.rolling(smooth).mean()
 
     # look at differences?
-    if cum:
+    if cumul:
         data = data.cumsum(axis=0)
 
     # kill off zeros in log mode

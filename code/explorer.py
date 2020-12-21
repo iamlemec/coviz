@@ -63,7 +63,7 @@ state = st.sidebar.multiselect('State', list_state, default=['PA', 'CA'])
 county = st.sidebar.multiselect('County', list_county, default=['Allegheny, PA', 'King, WA'])
 st.sidebar.title('Options')
 log = st.sidebar.checkbox('Log Scale', False)
-cum = st.sidebar.checkbox('Cumulative', False)
+cumul = st.sidebar.checkbox('Cumulative', False)
 smooth = st.sidebar.number_input('Smoothing', min_value=1, value=7)
 
 # aggregate selections
@@ -74,14 +74,14 @@ sel = pd.concat([sel_country, sel_state, sel_county], axis=1)
 
 # cases
 st.subheader('Cases (per million people)')
-fig_c, ax_c = pt.plot_progress(data=sel['cases_pc'], log=log, cum=cum, smooth=smooth, per=1e6)
+fig_c, ax_c = pt.plot_progress(data=sel['cases_pc'], log=log, cumul=cumul, smooth=smooth, per=1e6)
 ax_c.set_xlabel('')
 ax_c.set_ylabel('')
 st.pyplot(fig_c, clear=True, bbox_inches='tight')
 
 # deaths
 st.subheader('Deaths (per 10 million people)')
-fig_d, ax_d = pt.plot_progress(data=sel['deaths_pc'], log=log, cum=cum, smooth=smooth, per=1e7)
+fig_d, ax_d = pt.plot_progress(data=sel['deaths_pc'], log=log, cumul=cumul, smooth=smooth, per=1e7)
 ax_d.set_xlabel('')
 ax_d.set_ylabel('')
 st.pyplot(fig_d, clear=True, bbox_inches='tight')

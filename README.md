@@ -6,7 +6,7 @@ Plotting tools for COVID-19
 
 ## Data
 
-This uses comprehensive and continually updated data from the European Centre for Disease Prevention and Control (ECDC) for country level data. You can download that yourself here: https://www.ecdc.europa.eu/en/geographical-distribution-2019-ncov-cases
+This uses comprehensive and continually updated data from the Center for Systems Science and Engineering (CSSE) at Johns Hopkins University for country level data (https://github.com/CSSEGISandData/COVID-19).
 
 The state and county level data comes from the New York Times GitHub repository (https://github.com/nytimes/covid-19-data), which is included as a submodule in this repository. To fetch that run:
 
