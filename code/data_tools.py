@@ -15,7 +15,7 @@ def load_jhu(path, name):
     iso_map = iso_info.set_index(['country', 'region'])['country_code']
 
     iso_pop = iso_info.set_index('country_code')['population']
-    iso_pop = iso_pop.groupby('country_code').sum()
+    iso_pop = iso_pop.groupby('country_code').first()
 
     # merge iso and aggregate
     df = pd.read_csv(path)
@@ -29,7 +29,7 @@ def load_jhu(path, name):
     # transpose and fix dates
     df = df.T
     df.index = pd.to_datetime(df.index)
-    
+
     # find per capita rates
     df_pc = df.div(iso_pop, axis=1)
 
@@ -40,7 +40,7 @@ def load_jhu(path, name):
         f'{name}': df.diff(),
         f'{name}_pc': df_pc.diff(),
     }, axis=1)
-    
+
 def load_country():
     jhu_dir = f'{datadir}/jhu/csse_covid_19_data/csse_covid_19_time_series'
     return pd.concat([

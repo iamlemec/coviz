@@ -58,7 +58,7 @@ list_state = data_state.columns.levels[1].tolist()
 list_county = data_county.columns.levels[1].tolist()
 
 # sidebar
-country = st.sidebar.multiselect('Country', list_country, default=['USA', 'FRA'])
+country = st.sidebar.multiselect('Country', list_country, default=['USA', 'ISR'])
 state = st.sidebar.multiselect('State', list_state, default=['PA', 'CA'])
 county = st.sidebar.multiselect('County', list_county, default=['Allegheny, PA', 'King, WA'])
 st.sidebar.title('Options')
