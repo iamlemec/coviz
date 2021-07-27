@@ -30,16 +30,18 @@ def get_aligned(panel, cutoff, cutvar):
     shift = shift.swaplevel(axis=1).sort_index(axis=1)
     return shift
 
+def round_125(x):
+    if x < 2:
+        return 1
+    elif x < 5:
+        return 2
+    else:
+        return 5
+
 def gen_ticks_log(ymin, ymax, per):
     ppow = np.floor(np.log10(ymin))
-    pnum = ymin/np.power(10.0, ppow)
-
-    if pnum < 2:
-        pnum = 1
-    elif pnum < 5:
-        pnum = 2
-    else:
-        pnum = 5
+    pnum0 = ymin/np.power(10.0, ppow)
+    pnum = round_125(pnum0)
 
     while (yval := pnum*(10**ppow)) <= ymax:
         yield yval
@@ -58,28 +60,19 @@ def gen_ticks_lin(ymin0, ymax0, per):
     ymin = per*ymin0
     ymax = per*ymax0
 
-    if ymax <= 10:
-        step = 1
-    elif ymax <= 20:
-        step = 2
-    elif ymax <= 50:
-        step = 5
-    elif ymax <= 100:
-        step = 10
-    elif ymax <= 200:
-        step = 20
-    elif ymax <= 500:
-        step = 50
-    elif ymax <= 1000:
-        step = 100
-    elif ymax <= 2000:
-        step = 200
-    elif ymax <= 5000:
-        step = 500
-    elif ymax <= 10000:
-        step = 1000
-    else:
-        step = 2000
+    ppow = np.floor(np.log10(ymax))
+    pval = np.power(10.0, ppow)
+    pnum = round_125(ymax/pval)
+
+    if pnum == 1:
+        pnum = 2
+        pval /= 10
+    elif pnum == 2:
+        pnum = 5
+        pval /= 10
+    elif pnum == 5:
+        pnum = 1
+    step = pnum*pval
 
     yval = 0
     while yval < ymax:
@@ -109,7 +102,7 @@ class FixedLogScale(mpl.scale.ScaleBase):
                 elif d >= 1:
                     return '%d' % int(d+eps)
                 else:
-                    return '%.1f' % d
+                    return '%.2f' % d
 
         pmin = 1/self.per
         ymin, ymax = axis.get_view_interval()
@@ -148,7 +141,7 @@ class FixedLinScale(mpl.scale.ScaleBase):
                 elif d >= 1:
                     return '%d' % int(d+eps)
                 else:
-                    return '%.1f' % d
+                    return '%.2f' % d
 
         ymin, ymax = axis.get_view_interval()
         ticks = list(gen_ticks_lin(ymin, ymax, self.per))
@@ -160,7 +153,7 @@ class FixedLinScale(mpl.scale.ScaleBase):
 
 mpl.scale.register_scale(FixedLinScale)
 
-def plot_progress(data, names=None, figsize=(8, 5), xylabel=(5, -4), per=1e6, log=False, cumul=False, smooth=7, start='2020-02-15'):
+def plot_progress(data, names=None, figsize=(8, 5), xylabel=(5, -4), per=1e6, log=False, smooth=7):
     # get correct labels
     if names is None:
         codes = list(data)
@@ -172,13 +165,9 @@ def plot_progress(data, names=None, figsize=(8, 5), xylabel=(5, -4), per=1e6, lo
         codes = list(names)
     data = data[codes].rename(columns=names)
 
-    # smooth log cumulative data
+    # smooth data
     if smooth is not None:
         data = data.rolling(smooth).mean()
-
-    # look at differences?
-    if cumul:
-        data = data.cumsum(axis=0)
 
     # kill off zeros in log mode
     if log:
@@ -211,7 +200,9 @@ def plot_progress(data, names=None, figsize=(8, 5), xylabel=(5, -4), per=1e6, lo
     else:
         ax.set_yscale('fixed_lin', per=per)
         ax.set_ylim(0, 1.1*vmax)
-    ax.set_xlim(start, dmax+timedelta(days=5))
+
+    # extend right xlim
+    ax.set_xlim(dmin + timedelta(days=smooth), dmax + timedelta(days=5))
 
     # set up axes
     ax.grid(axis='y', linewidth=1, alpha=0.3)

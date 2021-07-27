@@ -4,3 +4,6 @@
 [submodule "data/jhu"]
 	path = data/jhu
 	url = https://github.com/CSSEGISandData/COVID-19
+[submodule "data/owid"]
+	path = data/owid
+	url = https://github.com/owid/covid-19-data
